@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IntraAi — Demo Video</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;width:1280px;height:720px;font-family:'DM Sans',sans-serif}
+
+/* ── OUTER FRAME ── */
+#stage{position:relative;width:1280px;height:720px;overflow:hidden;background:#06060f}
+
+/* ── SCENES (all stacked, shown one at a time) ── */
+.scene{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .6s ease}
+.scene.show{opacity:1;pointer-events:auto}
+
+/* ── CURSOR ── */
+#cursor{position:absolute;width:22px;height:22px;z-index:9999;pointer-events:none;
+  transition:left .5s cubic-bezier(.4,0,.2,1),top .5s cubic-bezier(.4,0,.2,1);
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+#cursor svg{width:22px;height:22px}
+#cursor.click-anim::after{content:'';position:absolute;top:50%;left:50%;
+  width:32px;height:32px;border-radius:50%;background:rgba(99,102,241,.4);
+  transform:translate(-50%,-50%);animation:clickRipple .4s ease-out forwards}
+@keyframes clickRipple{0%{opacity:1;transform:translate(-50%,-50%) scale(0)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(2)}}
+
+/* ── TITLE CARD ── */
+#s-title{background:linear-gradient(135deg,#06060f 0%,#0d0b2a 100%)}
+.tc-logo{font-family:'Sora',sans-serif;font-size:72px;font-weight:900;text-align:center;
+  background:linear-gradient(135deg,#a5b4fc,#6366f1);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;margin-bottom:16px}
+.tc-sub{font-family:'DM Sans',sans-serif;font-size:26px;color:rgba(255,255,255,.6);
+  text-align:center;margin-bottom:48px}
+.tc-tags{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.tc-tag{font-family:'Sora',sans-serif;font-size:14px;font-weight:600;
+  background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.35);
+  color:#a5b4fc;padding:8px 20px;border-radius:99px}
+.tc-center{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center}
+.tc-step{font-family:'Sora',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;color:#6366f1;margin-bottom:20px;
+  opacity:0;animation:fadeUp .6s .3s ease forwards}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── BROWSER SHELL ── */
+.browser{position:absolute;inset:40px;background:#fff;border-radius:14px;overflow:hidden;
+  box-shadow:0 40px 120px rgba(0,0,0,.6)}
+.bbar{height:44px;background:#f1f3f4;display:flex;align-items:center;padding:0 16px;gap:10px;
+  border-bottom:1px solid #e0e0e0}
+.bdots{display:flex;gap:6px}
+.bd{width:12px;height:12px;border-radius:50%}
+.bd1{background:#ef4444}.bd2{background:#f59e0b}.bd3{background:#22c55e}
+.burl{flex:1;background:#fff;border-radius:6px;border:1px solid #ddd;
+  height:28px;display:flex;align-items:center;padding:0 12px;gap:6px;
+  font-family:'DM Sans',sans-serif;font-size:12px;color:#555}
+.burl-lock{color:#22c55e;font-size:10px}
+.bframe{position:absolute;top:44px;left:0;right:0;bottom:0;overflow:hidden}
+
+/* ── PROGRESS BAR (video style) ── */
+#progress-bar{position:absolute;bottom:0;left:0;right:0;height:5px;background:rgba(255,255,255,.1);z-index:100}
+#progress-fill{height:100%;background:linear-gradient(90deg,#6366f1,#a5b4fc);width:0%;transition:width .3s linear}
+#scene-label{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  font-family:'Sora',sans-serif;font-size:12px;font-weight:700;
+  color:rgba(255,255,255,.7);letter-spacing:1px;text-transform:uppercase;
+  background:rgba(0,0,0,.5);padding:5px 16px;border-radius:99px;z-index:101}
+#timer{position:absolute;bottom:14px;right:20px;font-family:'Sora',sans-serif;
+  font-size:12px;font-weight:700;color:rgba(255,255,255,.5);z-index:101}
+
+/* ── TYPE EFFECT ── */
+.type-cursor{display:inline-block;width:2px;height:1em;background:#6366f1;
+  vertical-align:middle;animation:blink .7s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ── HIGHLIGHT OVERLAY ── */
+.hl{position:absolute;border-radius:8px;pointer-events:none;z-index:50;
+  box-shadow:0 0 0 4px rgba(99,102,241,.7),0 0 0 9999px rgba(0,0,0,.35);
+  transition:all .4s ease;opacity:0}
+.hl.show{opacity:1}
+
+/* ── CALLOUT BUBBLE ── */
+.callout{position:absolute;background:linear-gradient(135deg,#6366f1,#4f46e5);
+  color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;
+  padding:10px 18px;border-radius:10px;z-index:60;white-space:nowrap;
+  box-shadow:0 8px 24px rgba(99,102,241,.5);opacity:0;transition:opacity .3s ease}
+.callout::after{content:'';position:absolute;width:10px;height:10px;
+  background:#6366f1;transform:rotate(45deg)}
+.callout.show{opacity:1}
+.callout.arrow-down::after{bottom:-5px;left:50%;transform:translateX(-50%) rotate(45deg)}
+.callout.arrow-up::after{top:-5px;left:50%;transform:translateX(-50%) rotate(45deg)}
+.callout.arrow-left::after{left:-5px;top:50%;transform:translateY(-50%) rotate(45deg)}
+
+/* ── RECORDING PULSE ── */
+@keyframes recPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}
+  50%{box-shadow:0 0 0 12px rgba(239,68,68,0)}}
+.rec-pulse{animation:recPulse 1.2s ease-in-out infinite}
+
+/* ── SCORE COUNT UP ── */
+@keyframes scoreIn{from{transform:scale(0) rotate(-10deg);opacity:0}
+  60%{transform:scale(1.2) rotate(2deg)}to{transform:scale(1) rotate(0);opacity:1}}
+.score-pop{animation:scoreIn .6s cubic-bezier(.34,1.56,.64,1) forwards}
+
+/* ── WAVEFORM ── */
+.wave-bar{display:inline-block;width:4px;background:#6366f1;border-radius:99px;
+  margin:0 2px;animation:wave var(--d,.5s) ease-in-out infinite alternate}
+@keyframes wave{from{height:6px}to{height:var(--h,28px)}}
+
+/* ── FLOATING BADGE ── */
+@keyframes badgeFloat{0%,100%{transform:translateY(0) rotate(-2deg)}
+  50%{transform:translateY(-8px) rotate(2deg)}}
+.float-badge{animation:badgeFloat 2.5s ease-in-out infinite}
+
+/* ─── SCENE STYLES ─────────────────────────────── */
+
+/* Landing */
+.lp-hero{background:linear-gradient(160deg,#06060f 60%,#0d0b2a);min-height:676px;padding:0}
+.lp-nav{height:58px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 48px;border-bottom:1px solid rgba(255,255,255,.07)}
+.lp-logo{font-family:'Sora',sans-serif;font-size:22px;font-weight:900;
+  background:linear-gradient(135deg,#a5b4fc,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.lp-nav-links{display:flex;gap:32px}
+.lp-nav-link{font-family:'Sora',sans-serif;font-size:12px;color:rgba(255,255,255,.5);font-weight:600}
+.lp-cta-btn{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;
+  font-family:'Sora',sans-serif;font-size:12px;font-weight:700;
+  padding:9px 22px;border-radius:9px;box-shadow:0 4px 16px rgba(99,102,241,.4)}
+.lp-body{padding:70px 48px 0;text-align:center;position:relative}
+.lp-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,.15);
+  border:1px solid rgba(99,102,241,.3);border-radius:99px;padding:7px 18px;margin-bottom:28px}
+.lp-badge-text{font-family:'Sora',sans-serif;font-size:11px;font-weight:700;
+  color:#a5b4fc;letter-spacing:.8px}
+.lp-h1{font-family:'Sora',sans-serif;font-size:58px;font-weight:900;color:#fff;
+  line-height:1.07;letter-spacing:-2.5px;margin-bottom:20px}
+.lp-h1 span{background:linear-gradient(135deg,#a5b4fc,#6366f1);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.lp-p{font-family:'DM Sans',sans-serif;font-size:16px;color:rgba(255,255,255,.5);
+  max-width:480px;margin:0 auto 38px;line-height:1.75}
+.lp-btns{display:flex;gap:14px;justify-content:center;margin-bottom:58px}
+.lp-btn-p{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;
+  font-family:'Sora',sans-serif;font-size:14px;font-weight:700;
+  padding:14px 30px;border-radius:12px;box-shadow:0 6px 22px rgba(99,102,241,.5)}
+.lp-btn-s{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);
+  font-family:'Sora',sans-serif;font-size:14px;font-weight:700;
+  padding:14px 30px;border-radius:12px;border:1.5px solid rgba(255,255,255,.12)}
+.lp-stats{display:flex;justify-content:center;gap:56px}
+.lp-stat-v{font-family:'Sora',sans-serif;font-size:30px;font-weight:900;color:#fff}
+.lp-stat-l{font-family:'DM Sans',sans-serif;font-size:11px;color:rgba(255,255,255,.35)}
+
+/* Dashboard */
+.db-bg{background:#f8faff;height:676px}
+.db-header{height:56px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;background:#fff;border-bottom:1px solid #e0e7ff}
+.db-logo-row{display:flex;align-items:center;gap:10px}
+.db-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#6366f1,#4f46e5);
+  border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.db-logo-text{font-family:'Sora',sans-serif;font-size:16px;font-weight:800;color:#05264e}
+.db-content{max-width:900px;margin:0 auto;padding:28px 24px}
+.db-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.db-add-card{background:#fff;border:2px dashed #a5b4fc;border-radius:16px;
+  padding:24px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px;cursor:pointer;min-height:170px}
+.db-plus{width:46px;height:46px;background:linear-gradient(135deg,#6366f1,#4f46e5);
+  border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:24px;color:#fff}
+.db-add-text{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:#6366f1}
+.db-card{background:#fff;border:1.5px solid #e0e7ff;border-radius:16px;padding:18px;cursor:pointer}
+.db-card-tag{font-family:'Sora',sans-serif;font-size:9px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;color:#6366f1;margin-bottom:8px}
+.db-card-title{font-family:'Sora',sans-serif;font-size:13px;font-weight:700;
+  color:#05264e;margin-bottom:3px}
+.db-card-sub{font-family:'DM Sans',sans-serif;font-size:11px;color:#64748b;margin-bottom:12px}
+.db-card-btns{display:flex;gap:7px}
+.db-card-btn1{flex:1;text-align:center;padding:6px;border:1.5px solid #e0e7ff;
+  border-radius:7px;font-family:'Sora',sans-serif;font-size:10px;font-weight:700;color:#374151}
+.db-card-btn2{flex:1;text-align:center;padding:6px;background:linear-gradient(135deg,#6366f1,#4f46e5);
+  border-radius:7px;font-family:'Sora',sans-serif;font-size:10px;font-weight:700;color:#fff}
+
+/* Modal */
+.modal-bg{background:rgba(5,38,78,.55);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;height:676px}
+.modal-box{background:#fff;border-radius:22px;padding:34px;width:520px;
+  box-shadow:0 40px 80px rgba(0,0,0,.25)}
+.modal-label{font-family:'Sora',sans-serif;font-size:10px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;color:#6366f1;margin-bottom:9px}
+.modal-title{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;
+  color:#05264e;margin-bottom:5px}
+.modal-sub{font-family:'DM Sans',sans-serif;font-size:12px;color:#64748b;margin-bottom:20px}
+.modal-field{margin-bottom:14px}
+.modal-field-label{font-family:'Sora',sans-serif;font-size:11px;font-weight:600;
+  color:#374151;margin-bottom:5px}
+.modal-input{border:1.5px solid #e0e7ff;border-radius:9px;padding:10px 13px;
+  font-family:'DM Sans',sans-serif;font-size:12px;color:#1e293b;width:100%}
+.modal-input.active{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.modal-submit{width:100%;padding:12px;background:linear-gradient(135deg,#6366f1,#4f46e5);
+  border-radius:11px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;
+  color:#fff;text-align:center;box-shadow:0 4px 16px rgba(99,102,241,.38)}
+
+/* Interview */
+.iv-bg{background:#f8faff;height:676px}
+.iv-header{height:54px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;background:#fff;border-bottom:1px solid #e0e7ff}
+.iv-content{max-width:880px;margin:0 auto;padding:22px;display:grid;
+  grid-template-columns:1fr 1fr;gap:18px}
+.iv-q-tabs{display:flex;gap:6px;margin-bottom:14px}
+.iv-tab{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
+.iv-tab.on{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;
+  box-shadow:0 4px 12px rgba(99,102,241,.35)}
+.iv-tab.off{background:#fff;border:1.5px solid #e0e7ff;color:#64748b}
+.iv-qcard{background:#fff;border:1.5px solid #e0e7ff;border-radius:14px;padding:20px;margin-bottom:14px}
+.iv-qnum{width:30px;height:30px;background:linear-gradient(135deg,#6366f1,#4f46e5);
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-family:'Sora',sans-serif;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
+.iv-qtext{font-family:'DM Sans',sans-serif;font-size:12px;color:#1e293b;line-height:1.7}
+.iv-webcam{background:#1e1b4b;border-radius:14px;overflow:hidden;position:relative;aspect-ratio:4/3}
+.iv-face{width:90px;height:90px;border-radius:50%;border:3px solid rgba(99,102,241,.4);
+  display:flex;align-items:center;justify-content:center;font-size:38px;
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.iv-rec-badge{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.9);
+  color:#fff;font-family:'Sora',sans-serif;font-size:9px;font-weight:700;
+  padding:4px 10px;border-radius:99px;display:flex;align-items:center;gap:4px}
+.iv-rec-dot{width:6px;height:6px;background:#fff;border-radius:50%}
+.iv-answer-preview{background:#f8faff;border:1.5px solid #e0e7ff;
+  border-radius:11px;padding:13px;margin-bottom:12px}
+.iv-answer-label{font-family:'Sora',sans-serif;font-size:9px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1.5px;color:#6366f1;margin-bottom:7px}
+.iv-answer-text{font-family:'DM Sans',sans-serif;font-size:11px;color:#374151;line-height:1.7}
+.iv-stop-btn{background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:11px;
+  padding:12px;text-align:center;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,.4)}
+.iv-stop-text{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:#fff}
+
+/* Evaluating */
+.eval-overlay{position:absolute;inset:0;background:rgba(5,38,78,.7);
+  backdrop-filter:blur(4px);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;z-index:30}
+.eval-spinner{width:56px;height:56px;border:5px solid rgba(255,255,255,.15);
+  border-top:5px solid #6366f1;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.eval-text{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;color:#fff}
+.eval-sub{font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(255,255,255,.55)}
+
+/* Feedback */
+.fb-bg{background:#f8faff;height:676px;overflow-y:auto}
+.fb-content{max-width:860px;margin:0 auto;padding:24px 22px}
+.fb-hero{background:linear-gradient(135deg,#064e3b,#065f46);border-radius:20px;
+  padding:36px 30px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden}
+.fb-hero-orb{position:absolute;top:-50px;right:-50px;width:200px;height:200px;
+  background:radial-gradient(circle,rgba(34,197,94,.14),transparent 65%);border-radius:50%}
+.fb-trophy{font-size:44px;margin-bottom:8px}
+.fb-hero-title{font-family:'Sora',sans-serif;font-size:26px;font-weight:900;color:#fff;
+  margin-bottom:6px;letter-spacing:-1px}
+.fb-hero-sub{font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(255,255,255,.55);margin-bottom:16px}
+.fb-badge{display:inline-flex;align-items:center;gap:7px;background:#f0fdf4;
+  color:#22c55e;border:2px solid #bbf7d0;font-family:'Sora',sans-serif;
+  font-size:12px;font-weight:800;padding:6px 18px;border-radius:99px}
+.fb-score-display{margin-top:18px;background:rgba(255,255,255,.1);
+  border-radius:12px;padding:12px 26px;display:inline-block}
+.fb-score-label{font-family:'DM Sans',sans-serif;font-size:11px;color:rgba(255,255,255,.45)}
+.fb-score-val{font-family:'Sora',sans-serif;font-size:42px;font-weight:900;
+  color:#22c55e;letter-spacing:-2px}
+.fb-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.fb-ring-card{background:#fff;border:1.5px solid #e0e7ff;border-radius:14px;
+  padding:16px;text-align:center}
+.fb-ring-val{font-family:'Sora',sans-serif;font-size:17px;font-weight:800;color:#05264e}
+.fb-ring-label{font-family:'Sora',sans-serif;font-size:9px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-top:2px}
+.fb-acc{background:#fff;border:1.5px solid #e0e7ff;border-radius:11px;
+  margin-bottom:7px;overflow:hidden}
+.fb-acc-row{display:flex;justify-content:space-between;align-items:center;padding:12px 15px}
+.fb-acc-q{font-family:'DM Sans',sans-serif;font-size:11px;color:#1e293b;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:380px}
+.fb-acc-score{font-family:'Sora',sans-serif;font-size:10px;font-weight:700;
+  background:#22c55e18;color:#22c55e;padding:2px 7px;border-radius:99px}
+.fb-open{padding:0 15px 14px}
+.fb-open-section{border-radius:10px;padding:11px 13px;margin-bottom:7px}
+.fb-open-label{font-family:'Sora',sans-serif;font-size:9px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px}
+.fb-open-text{font-family:'DM Sans',sans-serif;font-size:11px;line-height:1.65}
+.study-link{display:inline-flex;align-items:center;gap:3px;font-family:'Sora',sans-serif;
+  font-size:10px;font-weight:600;color:#4f46e5;background:#eef2ff;
+  border:1px solid #c7d2fe;border-radius:5px;padding:3px 9px;margin-top:6px;text-decoration:none}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- CURSOR -->
+  <div id="cursor">
+    <svg viewBox="0 0 24 24" fill="white" stroke="rgba(0,0,0,.5)" stroke-width="1">
+      <path d="M5.5 3.5l13 7.5-6.5 1.5-3 6z"/>
+    </svg>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="scene-label">Introduction</div>
+  <div id="timer">0:00</div>
+
+  <!-- ═══════════════════════════════════════
+       SCENE 0 — TITLE CARD
+  ═══════════════════════════════════════ -->
+  <div class="scene show" id="s0">
+    <div style="background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(99,102,241,.22),transparent 65%),#06060f;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="animation:fadeUp .7s ease forwards;opacity:0">
+        <div class="tc-logo">IntraAi</div>
+        <div class="tc-sub">AI Mock Interview Platform</div>
+        <div class="tc-tags">
+          <div class="tc-tag">🤖 Gemini AI</div>
+          <div class="tc-tag">🎙️ Voice Recording</div>
+          <div class="tc-tag">📊 Instant Feedback</div>
+          <div class="tc-tag">Next.js 14</div>
+        </div>
+      </div>
+      <div style="position:absolute;bottom:48px;font-family:'DM Sans',sans-serif;
+        font-size:13px;color:rgba(255,255,255,.35);animation:fadeUp .7s .4s ease forwards;opacity:0">
+        Full demo — 2 minutes
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCENE 1 — LANDING PAGE
+  ═══════════════════════════════════════ -->
+  <div class="scene" id="s1">
+    <div class="browser">
+      <div class="bbar">
+        <div class="bdots"><div class="bd bd1"></div><div class="bd bd2"></div><div class="bd bd3"></div></div>
+        <div class="burl"><span class="burl-lock">🔒</span><span id="url1">intraai.vercel.app</span></div>
+      </div>
+      <div class="bframe">
+        <div class="lp-hero">
+          <div class="lp-nav">
+            <div class="lp-logo">IntraAi</div>
+            <div class="lp-nav-links">
+              <span class="lp-nav-link">Features</span>
+              <span class="lp-nav-link">How It Works</span>
+              <span class="lp-nav-link">About</span>
+            </div>
+            <div class="lp-cta-btn">Get Started Free</div>
+          </div>
+          <div class="lp-body">
+            <div class="lp-badge">
+              <span style="font-size:13px">✨</span>
+              <span class="lp-badge-text">AI-POWERED MOCK INTERVIEWS</span>
+            </div>
+            <div class="lp-h1">Ace Your Next<br><span>Interview with AI</span></div>
+            <div class="lp-p">Practice with role-specific questions, get instant AI feedback, and track your improvement — all from your browser.</div>
+            <div class="lp-btns">
+              <div class="lp-btn-p">Start Free Interview →</div>
+              <div class="lp-btn-s">Watch Demo</div>
+            </div>
+            <div class="lp-stats">
+              <div><div class="lp-stat-v">10K+</div><div class="lp-stat-l">Interviews</div></div>
+              <div><div class="lp-stat-v">94%</div><div class="lp-stat-l">Success Rate</div></div>
+              <div><div class="lp-stat-v">50+</div><div class="lp-stat-l">Job Roles</div></div>
+              <div><div class="lp-stat-v">4.9★</div><div class="lp-stat-l">Rating</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="callout arrow-down" id="c1a" style="left:400px;top:130px">🎯 Beautiful landing page included</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCENE 2 — DASHBOARD
+  ═══════════════════════════════════════ -->
+  <div class="scene" id="s2">
+    <div class="browser">
+      <div class="bbar">
+        <div class="bdots"><div class="bd bd1"></div><div class="bd bd2"></div><div class="bd bd3"></div></div>
+        <div class="burl"><span class="burl-lock">🔒</span><span>intraai.vercel.app/dashboard</span></div>
+      </div>
+      <div class="bframe">
+        <div class="db-bg">
+          <div class="db-header">
+            <div class="db-logo-row">
+              <div class="db-logo-icon">🎯</div>
+              <div class="db-logo-text">IntraAi</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:18px">
+              <span style="font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:#64748b">Dashboard</span>
+              <span style="font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:#64748b">How It Works</span>
+              <div style="width:30px;height:30px;background:linear-gradient(135deg,#6366f1,#4f46e5);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:11px;font-weight:800;color:#fff">P</div>
+            </div>
+          </div>
+          <div class="db-content">
+            <div style="margin-bottom:22px">
+              <div style="font-family:'Sora',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#6366f1;margin-bottom:7px">✦ MY INTERVIEWS</div>
+              <div style="font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:#05264e">Welcome back, Prathamesh 👋</div>
+            </div>
+            <div class="db-grid">
+              <div class="db-add-card" id="add-card">
+                <div class="db-plus">+</div>
+                <div class="db-add-text">Add New Interview</div>
+              </div>
+              <div class="db-card">
+                <div class="db-card-tag">MOCK INTERVIEW</div>
+                <div style="display:flex;justify-content:space-between">
+                  <div class="db-card-title">Full Stack Developer</div>
+                  <div style="font-family:'Sora',sans-serif;font-size:10px;font-weight:700;color:#22c55e;background:#22c55e18;padding:2px 7px;border-radius:99px">8.2/10</div>
+                </div>
+                <div class="db-card-sub">3 Years · 12-03-2026</div>
+                <div class="db-card-btns"><div class="db-card-btn1">Feedback</div><div class="db-card-btn2">Practice</div></div>
+              </div>
+              <div class="db-card">
+                <div class="db-card-tag">MOCK INTERVIEW</div>
+                <div style="display:flex;justify-content:space-between">
+                  <div class="db-card-title">React Developer</div>
+                  <div style="font-family:'Sora',sans-serif;font-size:10px;font-weight:700;color:#f59e0b;background:#f59e0b18;padding:2px 7px;border-radius:99px">6.5/10</div>
+                </div>
+                <div class="db-card-sub">2 Years · 10-03-2026</div>
+                <div class="db-card-btns"><div class="db-card-btn1">Feedback</div><div class="db-card-btn2">Practice</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="callout arrow-left" id="c2a" style="left:320px;top:340px">Click to create interview</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCENE 3 — MODAL WITH TYPING
+  ═══════════════════════════════════════ -->
+  <div class="scene" id="s3">
+    <div class="browser">
+      <div class="bbar">
+        <div class="bdots"><div class="bd bd1"></div><div class="bd bd2"></div><div class="bd bd3"></div></div>
+        <div class="burl"><span class="burl-lock">🔒</span><span>intraai.vercel.app/dashboard</span></div>
+      </div>
+      <div class="bframe">
+        <div class="modal-bg">
+          <div class="modal-box">
+            <div class="modal-label">✦ SETUP</div>
+            <div class="modal-title">Create Mock Interview</div>
+            <div class="modal-sub">Tell us about the role you are practising for</div>
+            <div class="modal-field">
+              <div class="modal-field-label">Job Role / Position *</div>
+              <div class="modal-input active" id="field-role"><span id="type-role"></span><span class="type-cursor" id="tc-role"></span></div>
+            </div>
+            <div class="modal-field">
+              <div class="modal-field-label">Tech Stack / Job Description *</div>
+              <div class="modal-input" id="field-stack"><span id="type-stack"></span><span class="type-cursor" id="tc-stack" style="display:none"></span></div>
+            </div>
+            <div class="modal-field">
+              <div class="modal-field-label">Years of Experience *</div>
+              <div class="modal-input" id="field-exp"><span id="type-exp"></span><span class="type-cursor" id="tc-exp" style="display:none"></span></div>
+            </div>
+            <div style="background:#f8faff;border:1.5px solid #e0e7ff;border-radius:11px;padding:13px 15px;margin-bottom:18px;display:flex;gap:9px">
+              <span style="font-size:13px;flex-shrink:0">ℹ️</span>
+              <p style="font-family:'DM Sans',sans-serif;font-size:11px;color:#64748b;line-height:1.65">Gemini AI will generate role-specific questions — 70% technical, 30% behavioural.</p>
+            </div>
+            <div class="modal-submit" id="generate-btn">Generate Interview Questions →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="callout arrow-down" id="c3a" style="left:390px;top:66px;opacity:0">🤖 Gemini AI generates questions instantly</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCENE 4 — LIVE INTERVIEW + RECORDING
+  ═══════════════════════════════════════ -->
+  <div class="scene" id="s4">
+    <div class="browser">
+      <div class="bbar">
+        <div class="bdots"><div class="bd bd1"></div><div class="bd bd2"></div><div class="bd bd3"></div></div>
+        <div class="burl"><span class="burl-lock">🔒</span><span>intraai.vercel.app/dashboard/interview/abc/start</span></div>
+      </div>
+      <div class="bframe">
+        <div class="iv-bg">
+          <div class="iv-header">
+            <div style="font-family:'Sora',sans-serif;font-size:15px;font-weight:800;color:#05264e">IntraAi</div>
+            <div style="font-family:'Sora',sans-serif;font-size:11px;font-weight:700;color:#6366f1">Full Stack Developer · 3 Years</div>
+          </div>
+          <div class="iv-content">
+            <div>
+              <div class="iv-q-tabs">
+                <div class="iv-tab off">Q1</div>
+                <div class="iv-tab on">Q2</div>
+                <div class="iv-tab off">Q3</div>
+                <div class="iv-tab off">Q4</div>
+                <div class="iv-tab off">Q5</div>
+              </div>
+              <div class="iv-qcard">
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <div class="iv-qnum">2</div>
+                  <div class="iv-qtext">In React, how do you handle performance optimization when rendering a list of 500+ items that updates frequently? Walk me through your approach and what libraries you would use.</div>
+                </div>
+              </div>
+              <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:11px;padding:13px;margin-bottom:0">
+                <div style="display:flex;gap:7px">
+                  <span style="font-size:13px">💡</span>
+                  <p style="font-family:'DM Sans',sans-serif;font-size:11px;color:#374151;line-height:1.6">Mention <strong>react-window</strong>, <strong>React.memo</strong>, <strong>useMemo</strong>, and <strong>useCallback</strong>.</p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="iv-webcam">
+                <div style="aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;">
+                  <div class="iv-face">👤</div>
+                </div>
+                <div class="iv-rec-badge rec-pulse">
+                  <div class="iv-rec-dot" style="animation:blink .8s step-end infinite"></div>
+                  RECORDING
+                </div>
+              </div>
+              <div style="height:12px"></div>
+              <div class="iv-answer-preview">
+                <div class="iv-answer-label">🎙 Your Answer (Live)</div>
+                <div class="iv-answer-text" id="answer-text">For large React lists I would use windowing with react-window...</div>
+                <!-- waveform -->
+                <div style="display:flex;align-items:center;gap:2px;margin-top:8px;height:32px">
+                  <div class="wave-bar" style="--h:8px;--d:.3s"></div>
+                  <div class="wave-bar" style="--h:22px;--d:.5s"></div>
+                  <div class="wave-bar" style="--h:16px;--d:.4s"></div>
+                  <div class="wave-bar" style="--h:28px;--d:.6s"></div>
+                  <div class="wave-bar" style="--h:12px;--d:.35s"></div>
+                  <div class="wave-bar" style="--h:24px;--d:.45s"></div>
+                  <div class="wave-bar" style="--h:8px;--d:.55s"></div>
+                  <div class="wave-bar" style="--h:20px;--d:.3s"></div>
+                  <div class="wave-bar" style="--h:14px;--d:.5s"></div>
+                  <div class="wave-bar" style="--h:26px;--d:.4s"></div>
+                  <div class="wave-bar" style="--h:10px;--d:.6s"></div>
+                  <div class="wave-bar" style="--h:18px;--d:.35s"></div>
+                </div>
+              </div>
+              <div class="iv-stop-btn">
+                <div class="iv-stop-text">⏹  Stop Recording — Auto Evaluates</div>
+              </div>
+            </div>
+          </div>
+          <!-- AI Evaluating overlay -->
+          <div class="eval-overlay" id="eval-overlay" style="display:none">
+            <div class="eval-spinner"></div>
+            <div class="eval-text">🤖 Gemini AI is analysing your answer...</div>
+            <div class="eval-sub">Scoring accuracy, depth, and clarity</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="callout arrow-up" id="c4a" style="left:680px;bottom:120px;opacity:0">🎙️ Speech-to-text captures every word</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCENE 5 — FEEDBACK REPORT
+  ═══════════════════════════════════════ -->
+  <div class="scene" id="s5">
+    <div class="browser">
+      <div class="bbar">
+        <div class="bdots"><div class="bd bd1"></div><div class="bd bd2"></div><div class="bd bd3"></div></div>
+        <div class="burl"><span class="burl-lock">🔒</span><span>intraai.vercel.app/dashboard/interview/abc/feedback</span></div>
+      </div>
+      <div class="bframe">
+        <div class="fb-bg">
+          <div class="fb-content">
+            <div class="fb-hero">
+              <div class="fb-hero-orb"></div>
+              <div class="fb-trophy">🏆</div>
+              <div class="fb-hero-title">Interview Complete!</div>
+              <div class="fb-hero-sub">Your AI-powered performance report</div>
+              <div class="fb-badge">Excellent 🏆</div>
+              <div class="fb-score-display">
+                <div class="fb-score-label">Overall Score</div>
+                <div class="fb-score-val score-pop" id="score-display">0.0<span style="font-size:18px;color:rgba(255,255,255,.45)">/10</span></div>
+              </div>
+            </div>
+            <div class="fb-cards">
+              <div class="fb-ring-card">
+                <div style="position:relative;width:70px;height:70px;margin:0 auto 10px">
+                  <svg width="70" height="70"><circle cx="35" cy="35" r="29" fill="none" stroke="#e0e7ff" stroke-width="6"/><circle cx="35" cy="35" r="29" fill="none" stroke="#6366f1" stroke-width="6" stroke-dasharray="147 182" stroke-linecap="round" transform="rotate(-90 35 35)"/></svg>
+                  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px">🎯</div>
+                </div>
+                <div class="fb-ring-val">8.2/10</div>
+                <div class="fb-ring-label">Overall Score</div>
+              </div>
+              <div class="fb-ring-card">
+                <div style="position:relative;width:70px;height:70px;margin:0 auto 10px">
+                  <svg width="70" height="70"><circle cx="35" cy="35" r="29" fill="none" stroke="#e0e7ff" stroke-width="6"/><circle cx="35" cy="35" r="29" fill="none" stroke="#f59e0b" stroke-width="6" stroke-dasharray="182 182" stroke-linecap="round" transform="rotate(-90 35 35)"/></svg>
+                  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px">📋</div>
+                </div>
+                <div class="fb-ring-val">5</div>
+                <div class="fb-ring-label">Questions Done</div>
+              </div>
+              <div class="fb-ring-card">
+                <div style="position:relative;width:70px;height:70px;margin:0 auto 10px">
+                  <svg width="70" height="70"><circle cx="35" cy="35" r="29" fill="none" stroke="#e0e7ff" stroke-width="6"/><circle cx="35" cy="35" r="29" fill="none" stroke="#22c55e" stroke-width="6" stroke-dasharray="167 182" stroke-linecap="round" transform="rotate(-90 35 35)"/></svg>
+                  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px">✅</div>
+                </div>
+                <div class="fb-ring-val">92%</div>
+                <div class="fb-ring-label">Selection Chance</div>
+              </div>
+            </div>
+            <!-- Accordion expanded -->
+            <div style="font-family:'Sora',sans-serif;font-size:14px;font-weight:700;color:#05264e;margin-bottom:10px">Latest Responses</div>
+            <div class="fb-acc" id="acc-open">
+              <div class="fb-acc-row">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <div style="width:30px;height:30px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0"><span style="font-family:'Sora',sans-serif;font-size:10px;font-weight:900;color:#fff;line-height:1">9</span><span style="font-family:'Sora',sans-serif;font-size:7px;color:rgba(255,255,255,.65);line-height:1">/10</span></div>
+                  <div class="fb-acc-q">How do you optimize React performance for large lists of 500+ items?</div>
+                </div>
+                <div class="fb-acc-score">9/10</div>
+              </div>
+              <div class="fb-open">
+                <div class="fb-open-section" style="background:#f0fdf4;border:1px solid #bbf7d0">
+                  <div class="fb-open-label" style="color:#16a34a">✅ STRENGTHS</div>
+                  <div class="fb-open-text" style="color:#166534">• Correctly mentioned react-window for windowing<br>• Explained React.memo and useCallback with clear reasoning</div>
+                </div>
+                <div class="fb-open-section" style="background:#fff7ed;border:1px solid #fed7aa">
+                  <div class="fb-open-label" style="color:#c2410c">⚠️ AREAS TO IMPROVE</div>
+                  <div class="fb-open-text" style="color:#7c2d12">• Did not mention virtual scrolling libraries like react-virtual<br>• Could have discussed key prop optimization strategy
+                    <div><a class="study-link" href="#">🔗 reactjs.org</a> <a class="study-link" href="#">🔗 web.dev</a></div>
+                  </div>
+                </div>
+                <div class="fb-open-section" style="background:#eff6ff;border:1px solid #bfdbfe">
+                  <div class="fb-open-label" style="color:#1d4ed8">💡 SUGGESTIONS</div>
+                  <div class="fb-open-text" style="color:#1e3a5f">• Practice with react-virtual for modern windowing<br>• Quantify performance gains in answers (e.g. "reduced render time by 80%")</div>
+                </div>
+              </div>
+            </div>
+            <div class="fb-acc">
+              <div class="fb-acc-row">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <div style="width:30px;height:30px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0"><span style="font-family:'Sora',sans-serif;font-size:10px;font-weight:900;color:#fff;line-height:1">8</span><span style="font-family:'Sora',sans-serif;font-size:7px;color:rgba(255,255,255,.65);line-height:1">/10</span></div>
+                  <div class="fb-acc-q">Tell me about a challenging production bug you debugged and fixed.</div>
+                </div>
+                <div class="fb-acc-score">8/10</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="callout arrow-left" id="c5a" style="right:40px;top:280px;opacity:0">📚 Clickable study links per gap</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCENE 6 — END CARD
+  ═══════════════════════════════════════ -->
+  <div class="scene" id="s6">
+    <div style="background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(99,102,241,.22),transparent 65%),#06060f;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0">
+      <div style="text-align:center;animation:fadeUp .7s ease forwards">
+        <div style="font-size:52px;margin-bottom:16px">🚀</div>
+        <div class="tc-logo" style="font-size:56px;margin-bottom:10px">IntraAi</div>
+        <div style="font-family:'DM Sans',sans-serif;font-size:20px;color:rgba(255,255,255,.6);margin-bottom:36px">Full Source Code — Ready to Deploy in 30 Minutes</div>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:40px">
+          <div class="tc-tag float-badge">✅ Next.js 14</div>
+          <div class="tc-tag float-badge" style="animation-delay:.2s">✅ Gemini AI</div>
+          <div class="tc-tag float-badge" style="animation-delay:.4s">✅ Voice Recording</div>
+          <div class="tc-tag float-badge" style="animation-delay:.6s">✅ AI Feedback</div>
+          <div class="tc-tag float-badge" style="animation-delay:.8s">✅ Setup Guide PDF</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-family:'Sora',sans-serif;font-size:18px;font-weight:800;padding:16px 48px;border-radius:14px;display:inline-block;box-shadow:0 8px 28px rgba(99,102,241,.5);margin-bottom:20px">Price: ₹999 only</div>
+        <div style="font-family:'DM Sans',sans-serif;font-size:15px;color:rgba(255,255,255,.4)">DM "BUY" on Instagram or WhatsApp</div>
+        <div style="font-family:'Sora',sans-serif;font-size:13px;color:#6366f1;margin-top:8px">ai-mock-interviwer-brown.vercel.app</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end stage -->
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENE DEFINITIONS — each has duration (ms) and an onStart() callback
+// ─────────────────────────────────────────────────────────────────────────────
+const SCENES = [
+  { id:'s0', label:'Introduction',    dur:3500 },
+  { id:'s1', label:'Landing Page',    dur:5000 },
+  { id:'s2', label:'Dashboard',       dur:4000 },
+  { id:'s3', label:'Creating Interview', dur:7000 },
+  { id:'s4', label:'Live Interview',  dur:7500 },
+  { id:'s5', label:'AI Feedback',     dur:8000 },
+  { id:'s6', label:'Get the Code',    dur:5000 },
+];
+
+const TOTAL_DUR = SCENES.reduce((a,s)=>a+s.dur,0);
+let elapsed = 0;
+let sceneIdx = 0;
+let startTime = null;
+
+// cursor
+const cur = document.getElementById('cursor');
+let cx=200, cy=300;
+function moveCursor(x,y,cb,delay=0){
+  setTimeout(()=>{
+    cur.style.left=x+'px'; cur.style.top=y+'px';
+    if(cb) setTimeout(cb,500);
+  },delay);
+}
+function click(x,y,cb,delay=0){
+  moveCursor(x,y,()=>{
+    cur.classList.add('click-anim');
+    setTimeout(()=>cur.classList.remove('click-anim'),400);
+    if(cb) setTimeout(cb,300);
+  },delay);
+}
+
+// type effect
+function typeInto(elId,text,speed=55,cb){
+  const el=document.getElementById(elId);
+  let i=0;
+  const t=setInterval(()=>{
+    el.textContent+=text[i];
+    i++;
+    if(i>=text.length){clearInterval(t);if(cb)cb();}
+  },speed);
+}
+
+// scene show/hide
+function showScene(idx){
+  SCENES.forEach(s=>document.getElementById(s.id).classList.remove('show'));
+  document.getElementById(SCENES[idx].id).classList.add('show');
+  document.getElementById('scene-label').textContent=SCENES[idx].label;
+}
+
+// score count-up
+function countUpScore(targetId,target,dur){
+  const el=document.getElementById(targetId);
+  const start=performance.now();
+  function step(now){
+    const p=Math.min((now-start)/dur,1);
+    const ease=1-Math.pow(1-p,3);
+    el.innerHTML=(target*ease).toFixed(1)+'<span style="font-size:18px;color:rgba(255,255,255,.45)">/10</span>';
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// callout show
+function showCallout(id,delay=0){
+  setTimeout(()=>{document.getElementById(id).classList.add('show')},delay);
+}
+function hideCallout(id){document.getElementById(id).classList.remove('show')}
+
+// ─── SCENE ACTIONS ─────────────────────────────────────────────────────────
+const actions = [
+  // s0 — title, just wait
+  ()=>{
+    cur.style.left='-50px';
+  },
+
+  // s1 — landing page, cursor hovers CTA
+  ()=>{
+    cur.style.left='-50px';cur.style.top='300px';
+    setTimeout(()=>{moveCursor(850,155,null,800)},600);
+    showCallout('c1a',1400);
+    setTimeout(()=>{hideCallout('c1a')},4200);
+  },
+
+  // s2 — dashboard, cursor clicks Add
+  ()=>{
+    cur.style.left='900px';cur.style.top='200px';
+    setTimeout(()=>showCallout('c2a',0),1000);
+    click(230,350,null,1200);
+    setTimeout(()=>hideCallout('c2a'),3200);
+  },
+
+  // s3 — modal typing
+  ()=>{
+    cur.style.left='620px';cur.style.top='250px';
+    click(620,250,()=>{
+      typeInto('type-role','Full Stack Developer',60,()=>{
+        // move to stack field
+        document.getElementById('field-role').classList.remove('active');
+        document.getElementById('field-stack').classList.add('active');
+        document.getElementById('tc-role').style.display='none';
+        document.getElementById('tc-stack').style.display='inline-block';
+        click(620,300,()=>{
+          typeInto('type-stack','React, Node.js, MongoDB, REST APIs',50,()=>{
+            document.getElementById('field-stack').classList.remove('active');
+            document.getElementById('field-exp').classList.add('active');
+            document.getElementById('tc-stack').style.display='none';
+            document.getElementById('tc-exp').style.display='inline-block';
+            click(620,350,()=>{
+              typeInto('type-exp','3',200,()=>{
+                document.getElementById('tc-exp').style.display='none';
+                setTimeout(()=>{
+                  showCallout('c3a',0);
+                  click(620,490,null,400);
+                },600);
+              });
+            },200);
+          });
+        },600);
+      });
+    },300);
+  },
+
+  // s4 — live interview recording
+  ()=>{
+    cur.style.left='900px';cur.style.top='500px';
+    showCallout('c4a',1000);
+    // answer text types out
+    const ans=document.getElementById('answer-text');
+    ans.textContent='';
+    const full='For rendering large lists in React, I would use windowing with react-window. This renders only visible items instead of all 500+. I would also use React.memo on list item components to prevent re-renders, and useCallback to stabilise event handlers...';
+    let i=0;
+    const t=setInterval(()=>{ans.textContent+=full[i];i++;if(i>=full.length)clearInterval(t);},28);
+    // show eval overlay after 5.5s
+    setTimeout(()=>{
+      hideCallout('c4a');
+      const ov=document.getElementById('eval-overlay');
+      ov.style.display='flex';
+    },5500);
+  },
+
+  // s5 — feedback
+  ()=>{
+    cur.style.left='-50px';
+    countUpScore('score-display',8.2,1800);
+    showCallout('c5a',2000);
+    setTimeout(()=>hideCallout('c5a'),7200);
+  },
+
+  // s6 — end card
+  ()=>{ cur.style.left='-50px'; },
+];
+
+// ─── MAIN LOOP ──────────────────────────────────────────────────────────────
+function tick(ts){
+  if(!startTime) startTime=ts;
+  const total=ts-startTime;
+  elapsed=total;
+
+  // progress bar
+  document.getElementById('progress-fill').style.width=(Math.min(total/TOTAL_DUR,1)*100)+'%';
+
+  // timer
+  const s=Math.floor(total/1000);
+  document.getElementById('timer').textContent=Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;
+
+  // which scene?
+  let acc=0;
+  for(let i=0;i<SCENES.length;i++){
+    if(total<acc+SCENES[i].dur){
+      if(i!==sceneIdx){
+        sceneIdx=i;
+        showScene(i);
+        // reset eval overlay if leaving s4
+        if(SCENES[i].id!=='s4'){
+          const ov=document.getElementById('eval-overlay');
+          if(ov)ov.style.display='none';
+        }
+        actions[i]();
+      }
+      break;
+    }
+    acc+=SCENES[i].dur;
+  }
+
+  if(total<TOTAL_DUR+500) requestAnimationFrame(tick);
+  else {
+    // loop
+    startTime=null;sceneIdx=-1;
+    document.getElementById('progress-fill').style.width='0%';
+    requestAnimationFrame(tick);
+  }
+}
+
+// start
+showScene(0);
+actions[0]();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
